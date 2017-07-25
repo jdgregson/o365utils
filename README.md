@@ -10,7 +10,7 @@ using your criteria, and delete the emails that it finds (after confirmation, of
 course).
 
 ```diff
-/!\ WARNING
+-/!\ WARNING
 -Delete Emails is very powerful, likely more powerful than it needs to be. If 
 -you were to search for and delete emails that were sent to 
 -brandon@yourcompany.com with no further search limits (such as date and 
@@ -18,7 +18,7 @@ course).
 -any user, inside or outside of your company, including emails in other users' 
 -inboxes and sent folders (including replys and CC's), junk folders, or deleted 
 -items folders. This script has the power to remove every single email that has 
--ever been sent in your Office 365 tenant. -
+-ever been sent or received in your Office 365 tenant. -
 ```
 
 ## Requirements

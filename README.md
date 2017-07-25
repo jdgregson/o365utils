@@ -18,15 +18,15 @@ course).
 -any user, inside or outside of your company, including emails in other users' 
 -inboxes and sent folders (including replys and CC's), junk folders, or deleted 
 -items folders. This script has the power to remove every single email that has 
--ever been sent or received in your Office 365 tenant. -
+-ever been sent or received in your Office 365 tenant.
 ```
 
 ## Requirements
-- Delete-Emails uses some featues in PowerShell v5. If you are using Windows 7
+- Delete-Emails uses some features in PowerShell v5. If you are using Windows 7
 or Windows 8.1, please make sure you have installed [this](https://www.microsoft.com/en-us/download/details.aspx?id=50395)
   Windows update.
 - This script was developed using a full Office 365 admin account. If you have
-limited privelages in O365, you may have difficulty using this script.
+limited privileges in O365, you may have difficulty using this script.
 
 ## FAQ
 **I ran the search again after they were deleted and found the same number of

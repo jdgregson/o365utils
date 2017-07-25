@@ -9,16 +9,17 @@ to connect to the Office 365 Security & Compliance Center, perform a search
 using your criteria, and delete the emails that it finds (after confirmation, of 
 course).
 
-`````/!\ WARNING`````
-`````Delete Emails is very powerful, likely more powerful than it needs to `````
-`````be. If you were to search for and delete emails that were sent to `````
-`````brandon@yourcompany.com with no further search limits (such as date `````
-`````and subject), this would delete every email that has ever been sent to`````
-````` Brandon by any user, inside or outside of your company, including `````
-`````emails in other users' inboxes and sent folders (including replys and`````
-````` CC's), junk folders, or deleted items folders. This script has the `````
-`````power to remove every single email that has ever been sent in your `````
-`````Office 365 tenant. `````
+```diff
+/!\ WARNING
+-Delete Emails is very powerful, likely more powerful than it needs to be. If 
+-you were to search for and delete emails that were sent to 
+-brandon@yourcompany.com with no further search limits (such as date and 
+-subject), this would delete every email that has ever been sent to Brandon by 
+-any user, inside or outside of your company, including emails in other users' 
+-inboxes and sent folders (including replys and CC's), junk folders, or deleted 
+-items folders. This script has the power to remove every single email that has 
+-ever been sent in your Office 365 tenant. -
+```
 
 ## Requirements
 - Delete-Emails uses some featues in PowerShell v5. If you are using Windows 7
@@ -26,3 +27,23 @@ or Windows 8.1, please make sure you have installed [this](https://www.microsoft
   Windows update.
 - This script was developed using a full Office 365 admin account. If you have
 limited privelages in O365, you may have difficulty using this script.
+
+## FAQ
+**I ran the search again after they were deleted and found the same number of
+emails. What gives**
+Currently this script performs a SoftDelete on the emails it locates. This means
+that the emails are deleted from the users' mailbox and Deleted Items folder,
+but the user is still able to use the Recover Deleted Items feature to get the
+emails back. Future versions of this script may provide a way to permanently
+remove the items, or at least tell you how many of the results are already
+deleted. 
+
+## TODO
+- Make the "More Details" option only show the mailboxes that have emails which
+will be deleted. Organizations with 1000 users do not need to see 980 mailboxes
+which will be left untouched.
+- Add a "More Examples" option for search queries.
+- Add an option for a user to extend or remove the search timeout. 60 seconds
+may not be enough time to search 1,000,000+ emails in larger organizations.
+- Add a way to show how many of the returned results are in the Recoverable
+Items box so that admins don't think the emails are still there.

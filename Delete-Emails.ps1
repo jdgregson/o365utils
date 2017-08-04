@@ -14,10 +14,28 @@ try{$out = Get-ComplianceSearch|Out-String} catch {
     $Host.UI.RawUI.WindowTitle = $UserCredential.UserName + " (Office 365 Security & Compliance Center)"
 }
 
+$examples =
+'Example: sent>=07/03/2017 AND sent<=07/05/2017 AND subject:"open this attachment!"',
+'Example: subject:"contains this phrase" from:somedomain.com',
+'Example: to:user@mycompany.com',
+'Example: from:some.spammer@hijackeddomain.com',
+'Example: attachment:"Malicious-File.docx"',
+'Example: attachment:"docx" NOT from:user@mycompany.com',
+'More: https://technet.microsoft.com/en-us/library/ms.exch.eac.searchquerylearnmore(v=exchg.150).aspx'
+
 # get the search criteria from the user
-Write-Host "Enter a seach string to locate the email(s)"
-Write-Host 'Example: sent>=07/03/2017 AND sent<=07/05/2017 AND subject:"open this attachment!!"'
-$search = Read-Host "Search"
+while($true) {
+    if($search -And $search -eq 'm' -Or $search -eq 'M') {
+        $examples
+    } elseif($search) {
+        $search = "kind:email $search"
+        break
+    } else {
+        Write-Host "Enter a seach string to locate the email(s)"
+        Write-Host $examples[0]
+    }
+    $search = Read-Host "(enter 'm' for more examples) Search"
+}
 
 # create and run the search
 $guid = [guid]::NewGuid().Guid.Replace("-", "").Substring(25)

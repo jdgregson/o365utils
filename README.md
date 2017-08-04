@@ -30,7 +30,7 @@ limited privileges in O365, you may have difficulty using this script.
 
 ## FAQ
 **I ran the search again after they were deleted and found the same number of
-emails. What gives**
+emails. What gives?**
 Currently this script performs a SoftDelete on the emails it locates. This means
 that the emails are deleted from the users' mailbox and Deleted Items folder,
 but the user is still able to use the Recover Deleted Items feature to get the
@@ -42,7 +42,6 @@ deleted.
 - Make the "More Details" option only show the mailboxes that have emails which
 will be deleted. Organizations with 1000 users do not need to see 980 mailboxes
 which will be left untouched.
-- Add a "More Examples" option for search queries.
 - Add an option for a user to extend or remove the search timeout. 60 seconds
 may not be enough time to search 1,000,000+ emails in larger organizations.
 - Add a way to show how many of the returned results are in the Recoverable

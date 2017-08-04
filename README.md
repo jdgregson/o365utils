@@ -46,3 +46,4 @@ which will be left untouched.
 may not be enough time to search 1,000,000+ emails in larger organizations.
 - Add a way to show how many of the returned results are in the Recoverable
 Items box so that admins don't think the emails are still there.
+- Add a check to alert the user if their version of PowerShell is too old.

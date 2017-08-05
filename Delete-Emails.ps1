@@ -35,7 +35,7 @@ function ColorMatch {
     }
 }
 
-function CleanExit {
+function Clean-Exit {
     Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
     Exit
 }
@@ -95,7 +95,6 @@ Start-ComplianceSearch -Identity "$guid"
 
 # wait for the results and ask the user if they look right
 $searchCompleted = $false
-$timeout = 60
 For ($i=0; $i -le $timeout; $i++) {
     $theSearch = Get-ComplianceSearch -Identity "$guid" | Format-List -Property Status | Out-String
     $searchProgress = $theSearch | Select-String -pattern "Completed"
@@ -134,7 +133,9 @@ For ($i=0; $i -le $timeout; $i++) {
     Sleep 1
 }
 if($searchCompleted -eq $false) {
-    Write-Host "Error: the search timed out"
+    "Error: the search timed out" | ColorMatch .
+    "Try running this script with a longer timeout, e.g:" | ColorMatch .
+    "    Delete-Emails -Timeout 6000" | ColorMatch .
     Clean-Exit
 }
 
@@ -142,7 +143,6 @@ if($searchCompleted -eq $false) {
 $out = New-ComplianceSearchAction -SearchName "$guid" -Purge -PurgeType SoftDelete | Out-String
 
 # wait for the deletion results and delete the search if it is
-$timeout = 120
 For ($i=0; $i -le $timeout; $i++) {
     $thePurge = Get-ComplianceSearchAction -Identity $guid"_Purge" | Out-String
     $purgeProgress = $thePurge | Select-String -Pattern "Completed"

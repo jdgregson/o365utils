@@ -39,7 +39,5 @@ remove the items, or at least tell you how many of the results are already
 deleted.
 
 ## TODO
-- Add an option for a user to extend or remove the search timeout. 60 seconds
-may not be enough time to search 1,000,000+ emails in larger organizations.
 - Add a way to show how many of the returned results are in the Recoverable
 Items box so that admins don't think the emails are still there.

@@ -62,7 +62,7 @@ Start-ComplianceSearch -Identity "$guid"
 $searchCompleted = $false
 $timeout = 60
 For ($i=0; $i -le $timeout; $i++) {
-    $theSearch = Get-ComplianceSearch -Identity "$guid" | Out-String
+    $theSearch = Get-ComplianceSearch -Identity "$guid" | Format-List -Property Status | Out-String
     $searchProgress = $theSearch | Select-String -pattern "Completed"
     if($searchProgress.length -gt 0) {
         $searchCompleted = $true
@@ -76,7 +76,20 @@ For ($i=0; $i -le $timeout; $i++) {
             Write-Host "Confirmed. Continuing to delete..."
             break
         } elseif($answer.ToLower() -eq "m") {
-            Get-ComplianceSearch -Identity "$guid" | Format-List
+            # if the user asked for more details, parse the results and show
+            # only the mailboxes that have items which were found
+            $results = Get-ComplianceSearch -Identity "$guid" | Format-List -Property SuccessResults | Out-String
+            $results = $results -Replace "SuccessResults : {"
+            $results = $results -Replace "                 "
+            $results = $results -Replace "}"
+            $results = $results -Replace "`r`n"
+            $results = $results -Replace "(Total size: [0-9,]*)","`r`n"
+            $results = $results -split "`r`n"
+            ForEach($mailbox in $results) {
+                if([int]($mailbox.Split(' ')[4]) -gt 0) {
+                    "$mailbox" | ColorMatch "Item count: [0-9]*"
+                }
+            }
             continue;
         } else {
             Write-Host "Canceled. Cleaning up and exiting..."
@@ -107,4 +120,30 @@ For ($i=0; $i -le $timeout; $i++) {
         Exit
     }
     Sleep 1
+}
+
+function ColorMatch {
+    #https://stackoverflow.com/questions/12609760
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [string] $InputObject,
+
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $Pattern
+    )
+    begin{ $r = [regex]$Pattern }
+    process {
+        $ms = $r.Matches($inputObject)
+        $startIndex = 0
+        foreach($m in $ms) {
+            $nonMatchLength = $m.Index - $startIndex
+            Write-Host $inputObject.Substring($startIndex, $nonMatchLength) -NoNew
+            Write-Host $m.Value -Fore DarkRed -NoNew
+            $startIndex = $m.Index + $m.Length
+        }
+        if($startIndex -lt $inputObject.Length) {
+            Write-Host $inputObject.Substring($startIndex) -NoNew
+        }
+        Write-Host
+    }
 }

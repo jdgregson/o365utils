@@ -39,9 +39,6 @@ remove the items, or at least tell you how many of the results are already
 deleted.
 
 ## TODO
-- Make the "More Details" option only show the mailboxes that have emails which
-will be deleted. Organizations with 1000 users do not need to see 980 mailboxes
-which will be left untouched.
 - Add an option for a user to extend or remove the search timeout. 60 seconds
 may not be enough time to search 1,000,000+ emails in larger organizations.
 - Add a way to show how many of the returned results are in the Recoverable

@@ -5,6 +5,21 @@
 # Author: Jonathan Gregson <jonathan.gregson@agsstainless.com>
 #                          <jdgregson@gmail.com>
 
+# check if we are on PowerShell version 5 and warn the user if not
+$psversion = $PSVersionTable.PSVersion | Format-List -Property Major | Out-String
+$psversion = [int]($psversion -split ": ")[1]
+if($psversion -lt 5) {
+    $warning = @"
+    ================================ /!\ ================================
+    WARNING: Your version of PowerShell is less than V5. This script may
+    not run properly in your version. If you run into issues, please 
+    install this Windows update to bring your PowerShell version to V5:
+    https://www.microsoft.com/en-us/download/details.aspx?id=50395
+    =====================================================================
+"@
+    Write-Host $warning -ForegroundColor Yellow
+}
+
 # connect to Office 365 Security & Compliance Center
 try{$out = Get-ComplianceSearch|Out-String} catch {
     Write-Host "Enter your Office 365 admin user credentials..."

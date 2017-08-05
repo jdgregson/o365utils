@@ -93,16 +93,14 @@ For ($i=0; $i -le $timeout; $i++) {
             continue;
         } else {
             Write-Host "Canceled. Cleaning up and exiting..."
-            Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
-            Exit
+            Clean-Exit
         }
     }
     Sleep 1
 }
 if($searchCompleted -eq $false) {
     Write-Host "Error: the search timed out"
-    Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
-    Exit
+    Clean-Exit
 }
 
 # delete the emails with the user's confirmation
@@ -116,8 +114,7 @@ For ($i=0; $i -le $timeout; $i++) {
     if($purgeProgress.length -gt 0) {
         Write-Host "Deletion complete"
         Write-Host "Cleaning up and exiting..."
-        Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
-        Exit
+        Clean-Exit
     }
     Sleep 1
 }
@@ -146,4 +143,9 @@ function ColorMatch {
         }
         Write-Host
     }
+}
+
+function Clean-Exit {
+    Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
+    Exit
 }

@@ -31,7 +31,7 @@ while($true) {
         $search = "kind:email $search"
         break
     } else {
-        Write-Host "Enter a seach string to locate the email(s)"
+        Write-Host "Enter a search string to locate the email(s)"
         Write-Host $examples[0]
     }
     $search = Read-Host "(enter 'm' for more examples) Search"

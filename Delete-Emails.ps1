@@ -5,6 +5,41 @@
 # Author: Jonathan Gregson <jonathan.gregson@agsstainless.com>
 #                          <jdgregson@gmail.com>
 
+param (
+    [int]$timeout = "120"
+ )
+
+function ColorMatch {
+    #https://stackoverflow.com/questions/12609760
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [string] $InputObject,
+
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $Pattern
+    )
+    begin{ $r = [regex]$Pattern }
+    process {
+        $ms = $r.Matches($inputObject)
+        $startIndex = 0
+        foreach($m in $ms) {
+            $nonMatchLength = $m.Index - $startIndex
+            Write-Host $inputObject.Substring($startIndex, $nonMatchLength) -NoNew
+            Write-Host $m.Value -Fore DarkRed -NoNew
+            $startIndex = $m.Index + $m.Length
+        }
+        if($startIndex -lt $inputObject.Length) {
+            Write-Host $inputObject.Substring($startIndex) -NoNew
+        }
+        Write-Host
+    }
+}
+
+function CleanExit {
+    Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
+    Exit
+}
+
 # check if we are on PowerShell version 5 and warn the user if not
 $psversion = $PSVersionTable.PSVersion | Format-List -Property Major | Out-String
 $psversion = [int]($psversion -split ": ")[1]
@@ -117,35 +152,4 @@ For ($i=0; $i -le $timeout; $i++) {
         Clean-Exit
     }
     Sleep 1
-}
-
-function ColorMatch {
-    #https://stackoverflow.com/questions/12609760
-    param(
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [string] $InputObject,
-
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string] $Pattern
-    )
-    begin{ $r = [regex]$Pattern }
-    process {
-        $ms = $r.Matches($inputObject)
-        $startIndex = 0
-        foreach($m in $ms) {
-            $nonMatchLength = $m.Index - $startIndex
-            Write-Host $inputObject.Substring($startIndex, $nonMatchLength) -NoNew
-            Write-Host $m.Value -Fore DarkRed -NoNew
-            $startIndex = $m.Index + $m.Length
-        }
-        if($startIndex -lt $inputObject.Length) {
-            Write-Host $inputObject.Substring($startIndex) -NoNew
-        }
-        Write-Host
-    }
-}
-
-function Clean-Exit {
-    Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
-    Exit
 }

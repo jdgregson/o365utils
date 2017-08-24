@@ -16,7 +16,10 @@ function ColorMatch {
         [string] $InputObject,
 
         [Parameter(Mandatory = $true, Position = 0)]
-        [string] $Pattern
+        [string] $Pattern,
+
+        [Parameter(Mandatory = $false, Position = 1)]
+        [string] $Color='DarkRed'
     )
     begin{ $r = [regex]$Pattern }
     process {
@@ -25,7 +28,7 @@ function ColorMatch {
         foreach($m in $ms) {
             $nonMatchLength = $m.Index - $startIndex
             Write-Host $inputObject.Substring($startIndex, $nonMatchLength) -NoNew
-            Write-Host $m.Value -Fore DarkRed -NoNew
+            Write-Host $m.Value -Fore $Color -NoNew
             $startIndex = $m.Index + $m.Length
         }
         if($startIndex -lt $inputObject.Length) {
@@ -35,9 +38,34 @@ function ColorMatch {
     }
 }
 
+function New-GUID() {
+    Return [guid]::NewGuid().Guid.Replace("-", "").Substring(25)
+}
+
 function Clean-Exit {
     Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
     Exit
+}
+
+function Get-ComplianceSearchResults($guid) {
+    $results = Get-ComplianceSearch -Identity "$guid" | Format-List -Property SuccessResults | Out-String
+    $results = $results -Replace "SuccessResults : {"
+    $results = $results -Replace "                 "
+    $results = $results -Replace "}"
+    $results = $results -Replace "`r`n"
+    $results = $results -Replace "(Total size: [0-9,]*)","`r`n"
+    $results = $results -split "`r`n"
+    Return $results
+}
+
+function Test-ComplianceSearchComplete($guid) {
+    $theSearch = Get-ComplianceSearch -Identity "$guid" | Format-List -Property Status | Out-String
+    $searchProgress = $theSearch | Select-String -pattern "Completed"
+    if($searchProgress.length -gt 0) {
+        Return $true
+    } else {
+        Return $false
+    }
 }
 
 # check if we are on PowerShell version 5 and warn the user if not
@@ -57,11 +85,15 @@ if($psversion -lt 5) {
 
 # connect to Office 365 Security & Compliance Center
 try{$out = Get-ComplianceSearch|Out-String} catch {
-    Write-Host "Enter your Office 365 admin user credentials..."
-    $UserCredential = Get-Credential
-    $Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid -Credential $UserCredential -Authentication Basic -AllowRedirection
+    Write-Host "Enter your Office 365 admin user global:O365UserCredential..."
+    $global:O365UserCredential = Get-Credential
+    $Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
     Import-PSSession $Session -AllowClobber -DisableNameChecking
-    $Host.UI.RawUI.WindowTitle = $UserCredential.UserName + " (Office 365 Security & Compliance Center)"
+    $Host.UI.RawUI.WindowTitle = $global:O365UserCredential.UserName + " (Office 365 Security & Compliance Center)"
+    if (!$ExoSession) {
+        $ExoSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell-liveid/ -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
+        Import-PSSession $ExoSession -AllowClobber -DisableNameChecking
+    }
 }
 
 $examples =
@@ -88,21 +120,29 @@ while($true) {
 }
 
 # create and run the search
-$guid = [guid]::NewGuid().Guid.Replace("-", "").Substring(25)
+$guid = New-GUID
 $out = New-ComplianceSearch -Name "$guid" -ExchangeLocation all -ContentMatchQuery "$search" | Out-String
 Write-Host "Starting the search..."
 Start-ComplianceSearch -Identity "$guid"
 
 # wait for the results and ask the user if they look right
 $searchCompleted = $false
+$usersWithResults = @()
 For ($i=0; $i -le $timeout; $i++) {
-    $theSearch = Get-ComplianceSearch -Identity "$guid" | Format-List -Property Status | Out-String
-    $searchProgress = $theSearch | Select-String -pattern "Completed"
-    if($searchProgress.length -gt 0) {
+    if(Test-ComplianceSearchComplete($guid)) {
         $searchCompleted = $true
         Write-Host "Search complete"
         Write-Host "The search returned the following:"
         Get-ComplianceSearch -Identity "$guid" | Format-List -Property Items
+        # parse our search results
+        $results = Get-ComplianceSearchResults "$guid"
+        $pattern = "Location: (.*?), Item count: [0-9]?"
+        $usersWithResults = @()
+        ForEach($mailbox in $results) {
+            if([int]($mailbox.Split(' ')[4]) -gt 0) {
+                $usersWithResults += [regex]::match($mailbox, $pattern).Groups[1].Value
+            }
+        }
         Write-Host "Does this seem accurate?"
         Write-Host "[Y] Yes [N] No [M] More details - default No"
         $answer = Read-Host "Confirm"
@@ -112,13 +152,6 @@ For ($i=0; $i -le $timeout; $i++) {
         } elseif($answer.ToLower() -eq "m") {
             # if the user asked for more details, parse the results and show
             # only the mailboxes that have items which were found
-            $results = Get-ComplianceSearch -Identity "$guid" | Format-List -Property SuccessResults | Out-String
-            $results = $results -Replace "SuccessResults : {"
-            $results = $results -Replace "                 "
-            $results = $results -Replace "}"
-            $results = $results -Replace "`r`n"
-            $results = $results -Replace "(Total size: [0-9,]*)","`r`n"
-            $results = $results -split "`r`n"
             ForEach($mailbox in $results) {
                 if([int]($mailbox.Split(' ')[4]) -gt 0) {
                     "$mailbox" | ColorMatch "Item count: [0-9]*"
@@ -142,14 +175,73 @@ if($searchCompleted -eq $false) {
 # delete the emails with the user's confirmation
 $out = New-ComplianceSearchAction -SearchName "$guid" -Purge -PurgeType SoftDelete | Out-String
 
-# wait for the deletion results and delete the search if it is
+# wait for the deletion results and delete the search if it is finished
 For ($i=0; $i -le $timeout; $i++) {
     $thePurge = Get-ComplianceSearchAction -Identity $guid"_Purge" | Out-String
     $purgeProgress = $thePurge | Select-String -Pattern "Completed"
     if($purgeProgress.length -gt 0) {
         Write-Host "Deletion complete"
-        Write-Host "Cleaning up and exiting..."
-        Clean-Exit
+        Break
     }
     Sleep 1
 }
+
+# confirm that the messages were deleted
+Write-Host "Confirming deletion..."
+Sleep 20
+$ConfirmationSearches = @()
+ForEach($UserEmail in $usersWithResults) {
+    # get the path of the user's Deleted Items folders and configure our query
+    # to exclude them
+    $folderExclusionsQuery = " AND NOT ("
+    $excludeFolders = "/Deletions","/Purges","/Recoverable Items"
+    $thisGuid = New-GUID
+    $thisSearch = $thisGuid
+    $ConfirmationSearches += $thisSearch
+    # see: https://support.office.com/en-us/article/e3cbc79c-5e97-43d3-8371-9fbc398cd92e
+    $folderStatistics = Get-MailboxFolderStatistics $UserEmail
+    foreach($folderStatistic in $folderStatistics) {
+        $folderPath = $folderStatistic.FolderPath;
+        if($excludeFolders.Contains($folderPath)) {
+            $folderId = $folderStatistic.FolderId;
+            $encoding= [System.Text.Encoding]::GetEncoding("us-ascii")
+            $nibbler= $encoding.GetBytes("0123456789ABCDEF");
+            $folderIdBytes = [Convert]::FromBase64String($folderId);
+            $indexIdBytes = New-Object byte[] 48;
+            $indexIdIdx=0;
+            $folderIdBytes | select -skip 23 -First 24 | %{$indexIdBytes[$indexIdIdx++]=$nibbler[$_ -shr 4];$indexIdBytes[$indexIdIdx++]=$nibbler[$_ -band 0xF]}
+            $folderQuery = "folderid:$($encoding.GetString($indexIdBytes))";
+            $folderExclusionsQuery += "($folderQuery) OR "
+        }
+    }
+    $folderExclusionsQuery += ")"
+    $fullSearch = "$search $folderExclusionsQuery"
+    # now start a search for each user
+    $out = New-ComplianceSearch -Name "$thisGuid" -ExchangeLocation $UserEmail -ContentMatchQuery "$fullSearch" | Out-String
+    Start-ComplianceSearch -Identity "$thisGuid"
+}
+# now wait for all of the confirmation searches to complete
+While($true) {
+    $allFinished = $true
+    For($i=0; $i -lt $ConfirmationSearches.length; $i++) {
+        $thisSearch = $ConfirmationSearches[$i];
+        if($thisSearch) {$allFinished = $false}
+        if($thisSearch -And (Test-ComplianceSearchComplete("$thisSearch"))) {
+            $results = Get-ComplianceSearchResults "$thisSearch";
+            $ConfirmationSearches[$i] = $false;
+            Remove-ComplianceSearch -Identity "$thisSearch" -Confirm:$false
+            ForEach($mailbox in $results) {
+                if($mailbox -And [int]($mailbox.Split(' ')[4]) -gt 0) {
+                    "$mailbox" | ColorMatch "Item count: [0-9]*" -Color 'DarkRed'
+                } elseif($mailbox) {
+                    "$mailbox" | ColorMatch "Item count: [0-9]*" -Color 'Green'
+                }
+            }
+        }
+    }
+    if($allFinished) {
+        break
+    }
+}
+
+Clean-Exit

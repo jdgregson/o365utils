@@ -42,8 +42,12 @@ function New-GUID() {
     Return [guid]::NewGuid().Guid.Replace("-", "").Substring(25)
 }
 
-function Clean-Exit {
+function Delete-Search($guid) {
     Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
+}
+
+function Clean-Exit {
+    Delete-Search "$guid"
     Exit
 }
 
@@ -68,6 +72,7 @@ function Test-ComplianceSearchComplete($guid) {
     }
 }
 
+
 # check if we are on PowerShell version 5 and warn the user if not
 $psversion = $PSVersionTable.PSVersion | Format-List -Property Major | Out-String
 $psversion = [int]($psversion -split ": ")[1]
@@ -75,7 +80,7 @@ if($psversion -lt 5) {
     $warning = @"
     ================================ /!\ ================================
     WARNING: Your version of PowerShell is less than V5. This script may
-    not run properly in your version. If you run into issues, please 
+    not run properly in your version. If you run into issues, please
     install this Windows update to bring your PowerShell version to V5:
     https://www.microsoft.com/en-us/download/details.aspx?id=50395
     =====================================================================
@@ -87,13 +92,11 @@ if($psversion -lt 5) {
 try{$out = Get-ComplianceSearch|Out-String} catch {
     Write-Host "Enter your Office 365 admin user global:O365UserCredential..."
     $global:O365UserCredential = Get-Credential
-    $Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
-    Import-PSSession $Session -AllowClobber -DisableNameChecking
+    $SCCSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
+    Import-PSSession $SCCSession -AllowClobber -DisableNameChecking
     $Host.UI.RawUI.WindowTitle = $global:O365UserCredential.UserName + " (Office 365 Security & Compliance Center)"
-    if (!$ExoSession) {
-        $ExoSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell-liveid/ -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
-        Import-PSSession $ExoSession -AllowClobber -DisableNameChecking
-    }
+    $ExoSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell-liveid/ -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
+    Import-PSSession $ExoSession -AllowClobber -DisableNameChecking
 }
 
 $examples =
@@ -181,26 +184,24 @@ For ($i=0; $i -le $timeout; $i++) {
     $purgeProgress = $thePurge | Select-String -Pattern "Completed"
     if($purgeProgress.length -gt 0) {
         Write-Host "Deletion complete"
+        Delete-Search "$guid"
         Break
     }
     Sleep 1
 }
 
-# confirm that the messages were deleted
+# for each mailbox with results, create a search query which will exclude
+# deleted items folders
+# see: https://support.office.com/en-us/article/e3cbc79c-5e97-43d3-8371-9fbc398cd92e
 Write-Host "Confirming deletion..."
-Sleep 20
-$ConfirmationSearches = @()
-ForEach($UserEmail in $usersWithResults) {
-    # get the path of the user's Deleted Items folders and configure our query
-    # to exclude them
+$PendingDeletions = New-Object System.Collections.ArrayList(,$usersWithResults)
+$ConfirmationSearches = New-Object System.Collections.ArrayList
+For($i=0; $i -lt $PendingDeletions.Count; $i++) {
+    $UserEmail = $PendingDeletions[$i]
     $folderExclusionsQuery = " AND NOT ("
     $excludeFolders = "/Deletions","/Purges","/Recoverable Items"
-    $thisGuid = New-GUID
-    $thisSearch = $thisGuid
-    $ConfirmationSearches += $thisSearch
-    # see: https://support.office.com/en-us/article/e3cbc79c-5e97-43d3-8371-9fbc398cd92e
     $folderStatistics = Get-MailboxFolderStatistics $UserEmail
-    foreach($folderStatistic in $folderStatistics) {
+    ForEach($folderStatistic in $folderStatistics) {
         $folderPath = $folderStatistic.FolderPath;
         if($excludeFolders.Contains($folderPath)) {
             $folderId = $folderStatistic.FolderId;
@@ -215,33 +216,35 @@ ForEach($UserEmail in $usersWithResults) {
         }
     }
     $folderExclusionsQuery += ")"
-    $fullSearch = "$search $folderExclusionsQuery"
-    # now start a search for each user
-    $out = New-ComplianceSearch -Name "$thisGuid" -ExchangeLocation $UserEmail -ContentMatchQuery "$fullSearch" | Out-String
-    Start-ComplianceSearch -Identity "$thisGuid"
+    $fullSearch = "$UserEmail#$search $folderExclusionsQuery"
+    $PendingDeletions[$i] = $fullSearch
 }
-# now wait for all of the confirmation searches to complete
-While($true) {
-    $allFinished = $true
-    For($i=0; $i -lt $ConfirmationSearches.length; $i++) {
-        $thisSearch = $ConfirmationSearches[$i];
-        if($thisSearch) {$allFinished = $false}
-        if($thisSearch -And (Test-ComplianceSearchComplete("$thisSearch"))) {
-            $results = Get-ComplianceSearchResults "$thisSearch";
-            $ConfirmationSearches[$i] = $false;
-            Remove-ComplianceSearch -Identity "$thisSearch" -Confirm:$false
-            ForEach($mailbox in $results) {
-                if($mailbox -And [int]($mailbox.Split(' ')[4]) -gt 0) {
-                    "$mailbox" | ColorMatch "Item count: [0-9]*" -Color 'DarkRed'
-                } elseif($mailbox) {
-                    "$mailbox" | ColorMatch "Item count: [0-9]*" -Color 'Green'
+
+While($PendingDeletions.Count -gt 0) {
+    ForEach($PendingDeletion in $PendingDeletions) {
+        $PendingDeletion = $PendingDeletion -Split '#'
+        $thisGuid = New-GUID
+        $out = New-ComplianceSearch -Name "$thisGuid" -ExchangeLocation $PendingDeletion[0] -ContentMatchQuery "$($PendingDeletion[1])" | Out-String
+        Start-ComplianceSearch -Identity "$thisGuid"
+        [void]$ConfirmationSearches.Add($thisGuid)
+    }
+    While($ConfirmationSearches.Count -gt 0) {
+        For($i=0; $i -lt $ConfirmationSearches.Count; $i++) {
+            $thisSearch = $ConfirmationSearches[$i];
+            if(Test-ComplianceSearchComplete("$thisSearch")) {
+                $results = Get-ComplianceSearchResults "$thisSearch";
+                $thisQuery = (Get-ComplianceSearch $thisSearch).ContentMatchQuery
+                $thisUser = (Get-ComplianceSearch $thisSearch).ExchangeLocation
+                $ConfirmationSearches.Remove($thisSearch)
+                Delete-Search "$thisSearch"
+                ForEach($mailbox in $results) {
+                    if($mailbox -And [int]($mailbox.Split(' ')[4]) -eq 0) {
+                        "$mailbox" | ColorMatch "Item count: [0-9]*" -Color 'Green'
+                        $PendingDeletions.Remove("$thisUser#$thisQuery")
+                    }
                 }
             }
         }
-    }
-    if($allFinished) {
-        break
+        sleep 0.5
     }
 }
-
-Clean-Exit

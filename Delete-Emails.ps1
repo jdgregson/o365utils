@@ -46,7 +46,8 @@ function Delete-Search($guid) {
     Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
 }
 
-function Clean-Exit {
+function Clean-Exit($message) {
+    if($message) {Write-Host $message}
     Delete-Search "$guid"
     Exit
 }
@@ -156,8 +157,7 @@ For ($i=0; $i -le $timeout; $i++) {
         Write-Host "The search returned the following:"
         Get-ComplianceSearch $guid | Format-List -Property Items
         if((Get-ComplianceSearch $guid).Items -Eq 0) {
-            Write-Host "0 items found. Cleaning up and exiting..."
-            Clean-Exit
+            Clean-Exit "0 items found. Cleaning up and exiting..."
         }
         $usersWithResults = Get-ComplianceSearchResultsUsers $guid
         Write-Host "Does this seem accurate?"
@@ -169,8 +169,7 @@ For ($i=0; $i -le $timeout; $i++) {
             Get-ComplianceSearchResultsList $guid
             continue;
         } else {
-            Write-Host "Canceled. Cleaning up and exiting..."
-            Clean-Exit
+            Clean-Exit "Canceled. Cleaning up and exiting..."
         }
     }
     Sleep 1
@@ -188,7 +187,7 @@ $ComplianceSearchActions = Get-ComplianceSearchAction | Out-String
 $purgeProgress = $ComplianceSearchActions | Select-String -Pattern $guid
 # if the user did not confirm then exit
 if($purgeProgress.length -eq 0) {
-    Clean-Exit
+    Clean-Exit "The purge was canceled. Cleaning up and exiting..."
 }
 
 # wait for the deletion results and delete the search if it is finished

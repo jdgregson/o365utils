@@ -34,10 +34,10 @@ emails. What gives?**
 Currently this script performs a SoftDelete on the emails it locates. This means
 that the emails are deleted from the users' mailbox and Deleted Items folder,
 but the user is still able to use the Recover Deleted Items feature to get the
-emails back. Future versions of this script may provide a way to permanently
-remove the items, or at least tell you how many of the results are already
-deleted.
+emails back. Running a search again will show the same number of items, but the
+script will look at each mailbox after it is finished and tell you how many
+of the emails are _actually_ in the users Inbox.
 
 ## TODO
-- Add a way to show how many of the returned results are in the Recoverable
-Items box so that admins don't think the emails are still there.
+- Recent changes break the script in PowerShell v2 before our warning can be
+  shown. Find a way around this.

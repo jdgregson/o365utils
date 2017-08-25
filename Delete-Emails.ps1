@@ -52,12 +52,9 @@ function Clean-Exit {
 }
 
 function Get-ComplianceSearchResults($guid) {
-    $results = Get-ComplianceSearch -Identity "$guid" | Format-List -Property SuccessResults | Out-String
-    $results = $results -Replace "SuccessResults : {"
-    $results = $results -Replace "                 "
-    $results = $results -Replace "}"
-    $results = $results -Replace "`r`n"
-    $results = $results -Replace "(Total size: [0-9,]*)","`r`n"
+    $results = (Get-ComplianceSearch $guid).SuccessResults
+    $results = $results -Replace "{" -Replace "}" -Replace "`r`n"
+    $results = $results -Replace "(, Total size: [0-9,]*)","`r`n"
     $results = $results -split "`r`n"
     Return $results
 }

@@ -142,9 +142,9 @@ while($true) {
 
 # create and run the search
 $guid = New-GUID
-$out = New-ComplianceSearch -Name "$guid" -ExchangeLocation all -ContentMatchQuery "$search" | Out-String
+$out = New-ComplianceSearch -Name $guid -ExchangeLocation all -ContentMatchQuery "$search" | Out-String
 Write-Host "Starting the search..."
-Start-ComplianceSearch -Identity "$guid"
+Start-ComplianceSearch $guid
 
 # wait for the results and ask the user if they look right
 $searchCompleted = $false
@@ -154,7 +154,11 @@ For ($i=0; $i -le $timeout; $i++) {
         $searchCompleted = $true
         Write-Host "Search complete"
         Write-Host "The search returned the following:"
-        Get-ComplianceSearch -Identity "$guid" | Format-List -Property Items
+        Get-ComplianceSearch $guid | Format-List -Property Items
+        if((Get-ComplianceSearch $guid).Items -Eq 0) {
+            Write-Host "0 items found. Cleaning up and exiting..."
+            Clean-Exit
+        }
         $usersWithResults = Get-ComplianceSearchResultsUsers $guid
         Write-Host "Does this seem accurate?"
         $answer = Read-Host "[Y] Yes  [N] No  [M] More details  (default is `"N`")"

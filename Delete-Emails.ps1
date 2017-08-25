@@ -180,6 +180,12 @@ if($searchCompleted -eq $false) {
 
 # delete the emails with the user's confirmation
 $out = New-ComplianceSearchAction -SearchName "$guid" -Purge -PurgeType SoftDelete | Out-String
+$ComplianceSearchActions = Get-ComplianceSearchAction | Out-String
+$purgeProgress = $ComplianceSearchActions | Select-String -Pattern $guid
+# if the user did not confirm then exit
+if($purgeProgress.length -eq 0) {
+    Clean-Exit
+}
 
 # wait for the deletion results and delete the search if it is finished
 For ($i=0; $i -le $timeout; $i++) {

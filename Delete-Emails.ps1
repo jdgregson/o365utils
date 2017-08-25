@@ -59,6 +59,27 @@ function Get-ComplianceSearchResults($guid) {
     Return $results
 }
 
+function Get-ComplianceSearchResultsUsers($guid) {
+    $results = Get-ComplianceSearchResults $guid
+    $usersWithResults = @()
+    $pattern = "Location: (.*?), Item count: [0-9]?"
+    ForEach($mailbox in $results) {
+        if([int]($mailbox.Split(' ')[4]) -gt 0) {
+            $usersWithResults += [regex]::match($mailbox, $pattern).Groups[1].Value
+        }
+    }
+    Return $usersWithResults
+}
+
+function Get-ComplianceSearchResultsList($guid) {
+    $results = Get-ComplianceSearchResults $guid
+    ForEach($mailbox in $results) {
+        if([int]($mailbox.Split(' ')[4]) -gt 0) {
+            "$mailbox" | ColorMatch "Item count: [0-9]*"
+        }
+    }
+}
+
 function Test-ComplianceSearchComplete($guid) {
     $theSearch = Get-ComplianceSearch -Identity "$guid" | Format-List -Property Status | Out-String
     $searchProgress = $theSearch | Select-String -pattern "Completed"
@@ -134,29 +155,14 @@ For ($i=0; $i -le $timeout; $i++) {
         Write-Host "Search complete"
         Write-Host "The search returned the following:"
         Get-ComplianceSearch -Identity "$guid" | Format-List -Property Items
-        # parse our search results
-        $results = Get-ComplianceSearchResults "$guid"
-        $pattern = "Location: (.*?), Item count: [0-9]?"
-        $usersWithResults = @()
-        ForEach($mailbox in $results) {
-            if([int]($mailbox.Split(' ')[4]) -gt 0) {
-                $usersWithResults += [regex]::match($mailbox, $pattern).Groups[1].Value
-            }
-        }
+        $usersWithResults = Get-ComplianceSearchResultsUsers $guid
         Write-Host "Does this seem accurate?"
-        Write-Host "[Y] Yes [N] No [M] More details - default No"
-        $answer = Read-Host "Confirm"
+        $answer = Read-Host "[Y] Yes  [N] No  [M] More details  (default is `"N`")"
         if($answer.ToLower() -eq "y") {
             Write-Host "Confirmed. Continuing to delete..."
             break
         } elseif($answer.ToLower() -eq "m") {
-            # if the user asked for more details, parse the results and show
-            # only the mailboxes that have items which were found
-            ForEach($mailbox in $results) {
-                if([int]($mailbox.Split(' ')[4]) -gt 0) {
-                    "$mailbox" | ColorMatch "Item count: [0-9]*"
-                }
-            }
+            Get-ComplianceSearchResultsList $guid
             continue;
         } else {
             Write-Host "Canceled. Cleaning up and exiting..."

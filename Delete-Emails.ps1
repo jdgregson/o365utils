@@ -232,6 +232,7 @@ For($i=0; $i -lt $PendingDeletions.Count; $i++) {
     $PendingDeletions[$i] = $fullSearch
 }
 
+$MailboxesWithResults = $PendingDeletions.Count
 While($PendingDeletions.Count -gt 0) {
     ForEach($PendingDeletion in $PendingDeletions) {
         $PendingDeletion = $PendingDeletion -Split '#'
@@ -251,8 +252,9 @@ While($PendingDeletions.Count -gt 0) {
                 Delete-Search "$thisSearch"
                 ForEach($mailbox in $results) {
                     if($mailbox -And [int]($mailbox.Split(' ')[4]) -eq 0) {
-                        "$mailbox" | ColorMatch "Item count: [0-9]*" -Color 'Green'
                         $PendingDeletions.Remove("$thisUser#$thisQuery")
+                        $Progress = "($($MailboxesWithResults-$PendingDeletions.Count)/$MailboxesWithResults)"
+                        "$Progress $mailbox" -Replace('Location: ') | ColorMatch "Item count: [0-9]*" -Color 'Green'
                     }
                 }
             }

@@ -206,7 +206,7 @@ For ($i=0; $i -le $timeout; $i++) {
 # deleted items folders
 # see: https://support.office.com/en-us/article/e3cbc79c-5e97-43d3-8371-9fbc398cd92e
 Write-Host "Confirming deletion..."
-$PendingDeletions = New-Object System.Collections.ArrayList(,$usersWithResults)
+$PendingDeletions = New-Object System.Collections.ArrayList(,@($usersWithResults))
 $ConfirmationSearches = New-Object System.Collections.ArrayList
 For($i=0; $i -lt $PendingDeletions.Count; $i++) {
     $UserEmail = $PendingDeletions[$i]

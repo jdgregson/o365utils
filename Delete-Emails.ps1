@@ -19,7 +19,7 @@ function ColorMatch {
         [string] $Pattern,
 
         [Parameter(Mandatory = $false, Position = 1)]
-        [string] $Color='DarkRed'
+        [string] $Color='Red'
     )
     begin{ $r = [regex]$Pattern }
     process {

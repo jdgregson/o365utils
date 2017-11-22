@@ -107,18 +107,22 @@ function Test-ComplianceSearchComplete($guid) {
     }
 }
 
+# connect to Exchange Online PowerShell
+if(-not($global:EOSession) -or($global:EOSession.State -ne "Opened") -or($global:EOSession.Availability -ne "Available")) {
+    $o365creds = Get-Credential -Message "Enter your Exchange Online admin credentials"
+    $global:EOSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell-liveid/ -Credential $o365creds -Authentication Basic -AllowRedirection
+    $out = Import-PSSession $global:EOSession -AllowClobber -DisableNameChecking|Out-String
+    if($out -like "*ExportedCommands*") {Write-Host "Successfully connected to Exchange Online"}
 }
-
-# connect to Office 365 Security & Compliance Center
-try{$out = Get-ComplianceSearch|Out-String} catch {
-    Write-Host "Enter your Office 365 admin user global:O365UserCredential..."
-    $global:O365UserCredential = Get-Credential
-    $SCCSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
-    Import-PSSession $SCCSession -AllowClobber -DisableNameChecking
-    $Host.UI.RawUI.WindowTitle = $global:O365UserCredential.UserName + " (Office 365 Security & Compliance Center)"
-    $ExoSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell-liveid/ -Credential $global:O365UserCredential -Authentication Basic -AllowRedirection
-    Import-PSSession $ExoSession -AllowClobber -DisableNameChecking
+# connect to Security and Compliance Center PowerShell
+if(-not($global:SCCSession) -or($global:SCCSession.State -ne "Opened") -or($global:SCCSession.Availability -ne "Available")) {
+    if(-not($o365creds)) {$o365creds = Get-Credential -Message "Enter your Office 365 admin credentials"}
+    $global:SCCSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid -Credential $o365creds -Authentication Basic -AllowRedirection
+    $out = Import-PSSession $global:SCCSession -AllowClobber -DisableNameChecking|Out-String
+    if($out -like "*ExportedCommands*") {Write-Host "Successfully connected to Security and Compliance Center"}
 }
+# nullify our creds so they aren't accessible anymore
+$o365creds = $Null
 
 $examples =
 'Example: sent>=07/03/2017 AND sent<=07/05/2017 AND subject:"open this attachment!"',

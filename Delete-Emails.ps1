@@ -38,7 +38,7 @@ function ColorMatch {
     )
     begin{ $r = [regex]$Pattern }
     process {
-        $ms = $r.Matches($inputObject)
+        $ms = $r.matches($inputObject)
         $startIndex = 0
         foreach($m in $ms) {
             $nonMatchLength = $m.Index - $startIndex
@@ -69,8 +69,8 @@ function Clean-Exit($message) {
 
 function Get-ComplianceSearchResults($guid) {
     $results = (Get-ComplianceSearch $guid).SuccessResults
-    $results = $results -Replace "{" -Replace "}" -Replace "`r`n"
-    $results = $results -Replace "(, Total size: [0-9,]*)","`r`n"
+    $results = $results -replace "{" -replace "}" -replace "`r`n"
+    $results = $results -replace "(, Total size: [0-9,]*)","`r`n"
     $results = $results -split "`r`n"
     Return $results
 }
@@ -79,7 +79,7 @@ function Get-ComplianceSearchResultsUsers($guid) {
     $results = Get-ComplianceSearchResults $guid
     $usersWithResults = @()
     $pattern = "Location: (.*?), Item count: [0-9]?"
-    ForEach($mailbox in $results) {
+    foreach($mailbox in $results) {
         if([int]($mailbox.Split(' ')[4]) -gt 0) {
             $usersWithResults += [regex]::match($mailbox, $pattern).Groups[1].Value
         }
@@ -89,7 +89,7 @@ function Get-ComplianceSearchResultsUsers($guid) {
 
 function Get-ComplianceSearchResultsList($guid) {
     $results = Get-ComplianceSearchResults $guid
-    ForEach($mailbox in $results) {
+    foreach($mailbox in $results) {
         if([int]($mailbox.Split(' ')[4]) -gt 0) {
             "$mailbox" | ColorMatch "Item count: [0-9]*"
         }
@@ -151,13 +151,13 @@ Start-ComplianceSearch $guid
 # wait for the results and ask the user if they look right
 $searchCompleted = $false
 $usersWithResults = @()
-For ($i=0; $i -le $timeout; $i++) {
+for($i=0; $i -le $timeout; $i++) {
     if(Test-ComplianceSearchComplete($guid)) {
         $searchCompleted = $true
         Write-Host "Search complete"
         Write-Host "The search returned the following:"
         Get-ComplianceSearch $guid | Format-List -Property Items
-        if((Get-ComplianceSearch $guid).Items -Eq 0) {
+        if((Get-ComplianceSearch $guid).Items -eq 0) {
             Clean-Exit "0 items found. Cleaning up and exiting..."
         }
         $usersWithResults = Get-ComplianceSearchResultsUsers $guid
@@ -192,7 +192,7 @@ if($purgeProgress.length -eq 0) {
 }
 
 # wait for the deletion results and delete the search if it is finished
-For ($i=0; $i -le $timeout; $i++) {
+for($i=0; $i -le $timeout; $i++) {
     $thePurge = Get-ComplianceSearchAction -Identity $guid"_Purge" | Out-String
     $purgeProgress = $thePurge | Select-String -Pattern "Completed"
     if($purgeProgress.length -gt 0) {
@@ -209,12 +209,12 @@ For ($i=0; $i -le $timeout; $i++) {
 Write-Host "Confirming deletion..."
 $PendingDeletions = New-Object System.Collections.ArrayList(,@($usersWithResults))
 $ConfirmationSearches = New-Object System.Collections.ArrayList
-For($i=0; $i -lt $PendingDeletions.Count; $i++) {
+for($i=0; $i -lt $PendingDeletions.Count; $i++) {
     $UserEmail = $PendingDeletions[$i]
     $folderExclusionsQuery = " AND NOT ("
     $excludeFolders = "/Deletions","/Purges","/Recoverable Items"
     $folderStatistics = Get-MailboxFolderStatistics $UserEmail
-    ForEach($folderStatistic in $folderStatistics) {
+    foreach($folderStatistic in $folderStatistics) {
         $folderPath = $folderStatistic.FolderPath;
         if($excludeFolders.Contains($folderPath)) {
             $folderId = $folderStatistic.FolderId;
@@ -234,16 +234,16 @@ For($i=0; $i -lt $PendingDeletions.Count; $i++) {
 }
 
 $MailboxesWithResults = $PendingDeletions.Count
-While($PendingDeletions.Count -gt 0) {
-    ForEach($PendingDeletion in $PendingDeletions) {
+while($PendingDeletions.Count -gt 0) {
+    foreach($PendingDeletion in $PendingDeletions) {
         $PendingDeletion = $PendingDeletion -Split '#'
         $thisGuid = New-GUID
         $out = New-ComplianceSearch -Name "$thisGuid" -ExchangeLocation $PendingDeletion[0] -ContentMatchQuery "$($PendingDeletion[1])" | Out-String
         Start-ComplianceSearch -Identity "$thisGuid"
         [void]$ConfirmationSearches.Add($thisGuid)
     }
-    While($ConfirmationSearches.Count -gt 0) {
-        For($i=0; $i -lt $ConfirmationSearches.Count; $i++) {
+    while($ConfirmationSearches.Count -gt 0) {
+        for($i=0; $i -lt $ConfirmationSearches.Count; $i++) {
             $thisSearch = $ConfirmationSearches[$i];
             if(Test-ComplianceSearchComplete("$thisSearch")) {
                 $results = Get-ComplianceSearchResults "$thisSearch";
@@ -251,11 +251,11 @@ While($PendingDeletions.Count -gt 0) {
                 $thisUser = (Get-ComplianceSearch $thisSearch).ExchangeLocation
                 $ConfirmationSearches.Remove($thisSearch)
                 Delete-Search "$thisSearch"
-                ForEach($mailbox in $results) {
-                    if($mailbox -And [int]($mailbox.Split(' ')[4]) -eq 0) {
+                foreach($mailbox in $results) {
+                    if($mailbox -and [int]($mailbox.Split(' ')[4]) -eq 0) {
                         $PendingDeletions.Remove("$thisUser#$thisQuery")
                         $Progress = "($($MailboxesWithResults-$PendingDeletions.Count)/$MailboxesWithResults)"
-                        "$Progress $mailbox" -Replace('Location: ') | ColorMatch "Item count: [0-9]*" -Color 'Green'
+                        "$Progress $mailbox" -replace('Location: ') | ColorMatch "Item count: [0-9]*" -Color 'Green'
                     }
                 }
             }

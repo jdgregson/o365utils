@@ -39,5 +39,3 @@ script will look at each mailbox after it is finished and tell you how many
 of the emails are _actually_ in the users Inbox.
 
 ## TODO
-- Recent changes break the script in PowerShell v2 before our warning can be
-  shown. Find a way around this.

@@ -204,6 +204,11 @@ for($i=0; $i -le $timeout; $i++) {
     Sleep 1
 }
 
+$confMessage = "Would you like to confirm the deletion? This will start many searches and may take a while."
+if(-not((Read-Host $confMessage).ToUpper() -eq "Y")) {
+    Write-Host "Skipping confirmation"
+    Clean-Exit
+}
 # for each mailbox with results, create a search query which will exclude
 # deleted items folders
 # see: https://support.office.com/en-us/article/e3cbc79c-5e97-43d3-8371-9fbc398cd92e

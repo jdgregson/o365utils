@@ -54,7 +54,8 @@ function ColorMatch {
 }
 
 function New-GUID() {
-    Return [guid]::NewGuid().Guid.Replace("-", "").Substring(25)
+    $guid = [guid]::NewGuid().Guid.Replace("-", "").Substring(25)
+    Return "delete-emails-$guid"
 }
 
 function Delete-Search($guid) {

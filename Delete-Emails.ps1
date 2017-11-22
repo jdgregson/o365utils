@@ -131,7 +131,7 @@ $examples =
 
 # get the search criteria from the user
 while($true) {
-    if($search -And $search -eq 'm' -Or $search -eq 'M') {
+    if($search -and $search.ToUpper() -eq 'M') {
         $examples
     } elseif($search) {
         $search = "kind:email $search"
@@ -140,7 +140,7 @@ while($true) {
         Write-Host "Enter a search string to locate the email(s)"
         Write-Host $examples[0]
     }
-    $search = Read-Host "(enter 'm' for more examples) Search"
+    $search = Read-Host "(enter `"M`" for more examples) Search"
 }
 
 # create and run the search
@@ -164,10 +164,10 @@ for($i=0; $i -le $timeout; $i++) {
         $usersWithResults = Get-ComplianceSearchResultsUsers $guid
         Write-Host "Does this seem accurate?"
         $answer = Read-Host "[Y] Yes  [N] No  [M] More details  (default is `"N`")"
-        if($answer.ToLower() -eq "y") {
+        if($answer.ToUpper() -eq "Y") {
             Write-Host "Confirmed. Continuing to delete..."
             break
-        } elseif($answer.ToLower() -eq "m") {
+        } elseif($answer.ToUpper() -eq "M") {
             Get-ComplianceSearchResultsList $guid
             continue;
         } else {

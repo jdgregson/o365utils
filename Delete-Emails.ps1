@@ -209,6 +209,7 @@ for($i=0; $i -le $timeout; $i++) {
 }
 
 $confMessage = "Would you like to confirm the deletion? This will start many searches and may take a while."
+$confMessage = "$confMessage`n[Y] Yes  [N] No  (default is `"N`")"
 if(-not((Read-Host $confMessage).ToUpper() -eq "Y")) {
     Write-Host "Skipping confirmation"
     Clean-Exit

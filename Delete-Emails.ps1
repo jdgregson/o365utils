@@ -10,9 +10,7 @@ param (
  )
 
 # check if we are on PowerShell version 5 and warn the user if not
-$psversion = $PSVersionTable.PSVersion | Format-List -Property Major | Out-String
-$psversion = [int]($psversion -split ": ")[1]
-if($psversion -lt 5) {
+if($PSVersionTable.PSVersion.Major -lt 5) {
     $warning = @"
     ================================ /!\ ================================
     WARNING: Your version of PowerShell is less than V5. This script may

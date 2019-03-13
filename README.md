@@ -8,7 +8,8 @@ already-powerful PowerShell capabilities of Office 365.
   [this](https://www.microsoft.com/en-us/download/details.aspx?id=50395) Windows
   update.
 - These scripts were developed using a full Office 365 admin account. If you
-have limited privileges in O365, you may have difficulty using this script.
+have limited privileges in O365, you may have difficulty using some of these
+scripts.
 
 #
 ### Delete-Emails.ps1

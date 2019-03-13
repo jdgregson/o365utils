@@ -2,6 +2,15 @@
 This is a collection of PowerShell scripts which augment and simplify the
 already-powerful PowerShell capabilities of Office 365.
 
+#### Multi-Factor Authentication
+Due to issues with how Multi-Factor Authentication has been implemented in the
+new Exchange Online Remote PowerShell Module
+[discussed here](https://github.com/jdgregson/o365utils/issues/5)
+these scripts do not support 2FA directly. As a workaround, you can use an app
+password to log in when using these scripts and you will not be prompted for
+your 2FA codes. You can use `Generate-CredFiles` to save a copy of the username
+and app password to speed up all of these scripts.
+
 #### Requirements
 - These scripts were developed in PowerShell v5. If you are using Windows 7 or
   Windows 8.1, please make sure you have installed
@@ -63,5 +72,6 @@ using PowerShell.
 
 #
 ### Generate-CredFiles.ps1
-Generate-CredFiles is used to save usernames and passwords
-
+Generate-CredFiles is used to save usernames and passwords in a credential file.
+O365-Auth can use these files to log into Office 365 automatically, bypassing
+2FA requirements (if you provide an app password).

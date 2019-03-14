@@ -9,12 +9,12 @@
 
 Param (
     [string]$User,
-    [int]$Attempts = 10,
+    [int]$Attempts = 100,
     [string]$CredFile,
     [switch]$Prompt
 )
 
-# connect to Exchange Online PowerShell, SharePoint Online Administration
+# connect to Azure AD and SharePoint Online Administration
 . "$PSScriptRoot\O365-Auth.ps1"
 if (($prompt -and (O365-Auth -Azure -SharePointAdmin -Prompt) -eq 1) -or (O365-Auth -Azure -SharePointAdmin) -eq 1) {
     Write-Warning "Failed to authenticate with Office 365"

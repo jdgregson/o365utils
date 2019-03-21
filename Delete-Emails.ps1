@@ -127,6 +127,43 @@ function Get-ComplianceSearchResultsList {
 }
 
 
+function Get-ComplianceSearchResultsPreview {
+    Param (
+        [string]$guid
+    )
+
+    New-ComplianceSearchAction -SearchName $guid -Preview -ErrorAction SilentlyContinue
+    $name = "$($guid)_Preview"
+    $preview = Get-ComplianceSearchAction $name
+    Write-Host "Creating preview..."
+    if ($preview -ne $Null -and $preview.GetType().Name -eq "PSObject") {
+        while ($preview.Status -ne "Completed") {
+            sleep 1
+            $preview = Get-ComplianceSearchAction $name
+        }
+        Write-Host "Formatting preview..."
+        $outputTable = @()
+        $items = $preview.Results -replace "{" -replace "}" -split ".eml,"
+        foreach ($_i in $items) {
+            $item = $_i -split ";" -replace "^ " -replace "`n"
+            $i = New-Object -Type PSObject -Property @{
+                To = $item[0] -Replace "Location: "
+                From = $item[1] -Replace "Sender: "
+                Subject = $item[2] -Replace "Subject: "
+                Received = $item[5] -Replace "Received Time: "
+            }
+            $outputTable += $i
+        }
+        Get-ComplianceSearchAction $name | Remove-ComplianceSearchAction -Confirm:$False
+        return $outputTable
+    } else {
+        Write-Warning "Could not preview results. Are you a member of the eDiscovery Managers or eDiscovery Administrators group?"
+        Write-Warning "See here for details: https://docs.microsoft.com/en-us/office365/securitycompliance/assign-ediscovery-permissions"
+        return $Null
+    }
+}
+
+
 function Test-ComplianceSearchComplete {
     Param (
         [string]$guid
@@ -192,12 +229,29 @@ for ($i=0; $i -le $timeout; $i++) {
         }
         $usersWithResults = Get-ComplianceSearchResultsUsers $guid
         Write-Host "Does this seem accurate?"
-        $answer = Read-Host "[Y] Yes  [N] No  [M] More details  (default is `"N`")"
+        $answer = Read-Host "[Y] Yes  [N] No  [M] More details [P] Preview results (default is `"N`")"
         if ($answer.ToUpper() -eq "Y") {
             Write-Host "Confirmed. Continuing to delete..."
             break
         } elseif ($answer.ToUpper() -eq "M") {
             Get-ComplianceSearchResultsList $guid
+            continue;
+        } elseif ($answer.ToUpper() -eq "P") {
+            $previewTable = (Get-ComplianceSearchResultsPreview $guid) | Select-Object -skip 1
+            if ($previewTable -eq $Null) {
+                continue;
+            }
+            $previewTable | Sort-Object To | Format-Table -AutoSize -Wrap
+            while ($True) {
+                $answer = Read-Host "`n[C] Continue  [L] List output  [T] Table output"
+                if ($answer.ToUpper() -eq "C") {
+                    break;
+                } elseif ($answer.ToUpper() -eq "L") {
+                    $previewTable | Sort-Object To | Format-List
+                } elseif ($answer.ToUpper() -eq "T") {
+                    $previewTable | Sort-Object To | Format-Table -AutoSize -Wrap
+                }
+            }
             continue;
         } else {
             Clean-Exit "Canceled. Cleaning up and exiting..."

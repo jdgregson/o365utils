@@ -8,8 +8,9 @@
 #                          <jdgregson@gmail.com>
 
 Param (
-    [int]$timeout = "120",
-    [switch]$prompt
+    [int]$Timeout = "120",
+    [switch]$Prompt,
+    [switch]$Cleanup
 )
 
 # check if we are on PowerShell version 5 and warn the user if not
@@ -179,6 +180,17 @@ function Test-ComplianceSearchComplete {
 }
 
 
+function Remove-OrphanedSearches {
+    Write-Host "Removing completed searches and search actions..."
+    Get-ComplianceSearch | Where-Object {
+        $_.Name -match "delete-emails-" -and $_.Status -eq "Completed"
+    } | Remove-ComplianceSearch -Confirm:$false
+    Get-ComplianceSearchAction | Where-Object {
+        $_.Name -match "delete-emails-" -and $_.Status -eq "Completed"
+    } | Remove-ComplianceSearchAction -Confirm:$false
+}
+
+
 # set up our remote Office 365 PowerShell sessions
 . "$PSScriptRoot\O365-Auth.ps1"
 if (($prompt -and (O365-Auth -Exchange -Security -Prompt) -eq 1) -or (O365-Auth -Exchange -Security) -eq 1) {
@@ -194,6 +206,11 @@ $examples =
 'Example: attachment:"Malicious-File.docx"',
 'Example: attachment:"docx" NOT from:user@mycompany.com',
 'More: https://technet.microsoft.com/en-us/library/ms.exch.eac.searchquerylearnmore(v=exchg.150).aspx'
+
+if ($Cleanup) {
+    Remove-OrphanedSearches
+    exit
+}
 
 # get the search criteria from the user
 while ($true) {

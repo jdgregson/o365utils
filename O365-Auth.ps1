@@ -67,6 +67,7 @@ function O365-Auth {
         }
 
         if ($Azure) {
+            # Connect to Azure AD
             if (Get-Command "Connect-AzureAD" -errorAction SilentlyContinue) {
                 if ($prompt) {
                     $out = Connect-AzureAD | Out-String

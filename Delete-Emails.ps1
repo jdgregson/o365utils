@@ -143,14 +143,14 @@ function Get-ComplianceSearchResultsPreview {
         }
         Write-Host "Formatting preview..."
         $outputTable = @()
-        $items = $preview.Results -replace "{" -replace "}" -split ".eml,"
+        $items = $preview.Results -replace "{" -replace "}" -split ".eml," -replace "`n"
         foreach ($_i in $items) {
-            $item = $_i -split ";" -replace "^ " -replace "`n"
+            $item = $_i -split "^`rLocation: |^Location: |; Sender: |; Subject: |; Type: |; Size: |; Received Time: |; Data Link: "
             $i = New-Object -Type PSObject -Property @{
-                To = $item[0] -Replace "Location: "
-                From = $item[1] -Replace "Sender: "
-                Subject = $item[2] -Replace "Subject: "
-                Received = $item[5] -Replace "Received Time: "
+                To = $item[1]
+                From = $item[2]
+                Subject = $item[3]
+                Received = $item[6]
             }
             $outputTable += $i
         }
@@ -229,7 +229,7 @@ for ($i=0; $i -le $timeout; $i++) {
         }
         $usersWithResults = Get-ComplianceSearchResultsUsers $guid
         Write-Host "Does this seem accurate?"
-        $answer = Read-Host "[Y] Yes  [N] No  [M] More details [P] Preview results (default is `"N`")"
+        $answer = Read-Host "[Y] Yes  [N] No  [M] More details  [P] Preview results (default is `"N`")"
         if ($answer.ToUpper() -eq "Y") {
             Write-Host "Confirmed. Continuing to delete..."
             break

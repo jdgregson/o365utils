@@ -8,11 +8,20 @@
 #                          <jdgregson@gmail.com>
 
 Param (
-    [string]$User,
-    [int]$Attempts = 100,
-    [string]$CredFile,
-    [switch]$Prompt
+    [Parameter(Mandatory=$true)]
+    [string]
+    $User,
+
+    [int]
+    $Attempts = 100,
+
+    [string]
+    $CredFile,
+
+    [switch]
+    $Prompt
 )
+
 
 # connect to Azure AD and SharePoint Online Administration
 . "$PSScriptRoot\O365-Auth.ps1"

@@ -67,7 +67,7 @@ function Delete-Search {
         [string]$guid
     )
 
-    Remove-ComplianceSearch -Identity "$guid" -Confirm:$false
+    Remove-ComplianceSearch -Identity "$guid" -Confirm:$false -ErrorAction SilentlyContinue
 }
 
 

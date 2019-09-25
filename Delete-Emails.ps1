@@ -7,24 +7,14 @@
 # Author: Jonathan Gregson <jonathan@jdgregson.com>
 #                          <jdgregson@gmail.com>
 
+#Requires -Version 5.0
+
+
 Param (
     [int]$Timeout = "120",
     [switch]$Prompt,
     [switch]$Cleanup
 )
-
-# check if we are on PowerShell version 5 and warn the user if not
-if ($PSVersionTable.PSVersion.Major -lt 5) {
-    $warning = @"
-    ================================ /!\ ================================
-    WARNING: Your version of PowerShell is less than V5. This script may
-    not run properly in your version. If you run into issues, please
-    install this Windows update to bring your PowerShell version to V5:
-    https://www.microsoft.com/en-us/download/details.aspx?id=50395
-    =====================================================================
-"@
-    Write-Host $warning -ForegroundColor Yellow
-}
 
 
 function ColorMatch {

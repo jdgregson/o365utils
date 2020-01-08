@@ -43,7 +43,7 @@ function O365-Auth {
             $o365creds = (Read-CredFile -CredFile $CredFile)
         } else {
             Write-Warning "`"$CredFile`" is not a valid credential file."
-            Exit
+            return
         }
     } else {
         $o365creds = Get-Credential

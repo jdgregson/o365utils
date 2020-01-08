@@ -14,7 +14,7 @@ Param (
 
 function SPOLists-Init {
     Param (
-        [string]$SPurl = "https://agsstainless.sharepoint.com",
+        [string]$sharePointUrl,
         [string]$username,
         [Security.SecureString]$password,
         [bool]$silent = $False
@@ -33,8 +33,8 @@ function SPOLists-Init {
     }
 
     if (-Not($global:SPcontext) -Or -Not($global:SPweb) -Or -Not($global:SPsite)) {
-        $global:SPurl = $SPurl
-        Write-Host "Connecting to $global:SPurl..."
+        $global:SharePointUrl = $sharePointUrl
+        Write-Host "Connecting to $global:sharePointUrl..."
         if ($username) {
             Write-Host "Username: $username"
         } else {
@@ -44,7 +44,7 @@ function SPOLists-Init {
             $password = Read-Host -Prompt "Enter password" -AsSecureString
         }
         $global:SPusername = $username
-        $global:SPcontext = New-Object Microsoft.SharePoint.Client.ClientContext($global:SPurl)
+        $global:SPcontext = New-Object Microsoft.SharePoint.Client.ClientContext($global:SharePointUrl)
         $credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($global:SPusername, $password)
         $global:SPcontext.Credentials = $credentials
         $global:SPcontext.RequestTimeOut = 5000 * 60 * 10;
@@ -56,7 +56,7 @@ function SPOLists-Init {
     }
 
     if (-Not($silent)) {
-        "Successfully connected to the SharePoint online site $global:SPurl."
+        "Successfully connected to the SharePoint online site $global:SharePointUrl."
         "Some utilities are provided to help work with lists, as detailed below.`n"
 
         Write-Host "NOTE: if you get an error saying 'The collection has not been initialized.', you likely need to assign the value in question to a varialbe and loop through it." -Foreground Yellow
